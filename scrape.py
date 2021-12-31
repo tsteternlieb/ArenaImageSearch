@@ -4,14 +4,14 @@ def getConnectedChannels(slug):
 	#slug: channel slug str
 	#[c1,c2,...] where c1,c2,... is linked to the current channel
 
-	GET = f'http://api.are.na/v2/channels/{slug}/connections'
-	try:
-	    collab_json_list = requests.get(GET).json()['channels']
-	except:
-	    return []
-	slugs = [json['slug'] for json in collab_json_list]
+    GET = f'http://api.are.na/v2/channels/{slug}/connections'
+    try:
+        collab_json_list = requests.get(GET).json()['channels']
+    except:
+        collab_json_list = []
+    slugs = [json['slug'] for json in collab_json_list]
 
-	return slugs
+    return slugs
 
 def generateChannelNetwork(startSlug,depth):
     '''
@@ -40,18 +40,30 @@ def generateChannelNetwork(startSlug,depth):
         
     return G
 
-def multi_generateChannelNetwork(startSlug, num_threads):
-	def get_connected_channels_from_queue(queue,curr_list):
-		while True:
-			slug = queue.get()
-			slugs = getConnectedChannels(slug)
-			curr_list.append(slugs)
-			queue.task_done()
-	l = []
-	q = Queue(startSlug)
-	for i in range(num_threads):
-		worker = Thread(target=multi_generateChannelNetwork, args=(q,l))
-		worker.start()
+def multithread_generateChannelNetwork(startSlugs, num_threads):
+    def get_connected_channels_from_queue(queue,r):
+        while True:
+            slug = queue.get()
+            slugs = getConnectedChannels(slug)            
+            for slug in slugs:
+                r.put(slug)
+            queue.task_done()
+
+    res = Queue()
+    q = Queue()
+    for slug in startSlugs:
+        q.put(slug)
+    
+    for i in range(num_threads):
+        worker = Thread(target=get_connected_channels_from_queue, args=(q,res))
+        worker.setDaemon(True)
+        worker.start()
+        
+    q.join()
+    return list(res.queue)
+
+
+    
 
 def main():
 	parser = argparse.ArgumentParser(description='startSlug')
@@ -69,9 +81,9 @@ if __name__ == "__main__":
 	from queue import Queue
 	from threading import Thread
 	import argparse
-	import scrape_utils
+	print("fart")
 	
-	main()
+	# main()
 	
 
 
