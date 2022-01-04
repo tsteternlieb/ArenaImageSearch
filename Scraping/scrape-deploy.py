@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 # env variables
 SECURITYGROUP = os.getenv("SECURITYGROUP")
+SUBNET = os.getenv("SUBNET")
 
 
 # client = boto3.client("ecs", "us-east-1")
@@ -24,7 +25,7 @@ def _deploy(
     start_slug: str,
     depth: int,
     dic: bool,
-    num_threads: str,
+    num_threads: int,
     container_name: str,
     task_def: str,
 ):
@@ -40,36 +41,36 @@ def _deploy(
         task_def (str): task name
     """
 
-    client = boto3.client("ecs")
+    client = boto3.client("ecs", "us-east-1")
 
     r = client.run_task(
         taskDefinition=task_def,
         launchType="FARGATE",
-        cluster="scape-cluster",
+        cluster="arn:aws:ecs:us-east-1:331544265742:cluster/scrape-cluster",
         platformVersion="LATEST",
         count=1,
         networkConfiguration={
             "awsvpcConfiguration": {
                 "subnets": [
-                    "subnet-9e7c0fc1",
+                    SUBNET,
                 ],
                 "assignPublicIp": "ENABLED",
-                "securityGroups": SECURITYGROUP,
+                "securityGroups": [SECURITYGROUP],
             }
         },
         overrides={
             "containerOverrides": [
                 {
-                    "name": container_name,
+                    "name": "cmd-args",
                     "command": [
                         "--slug",
                         start_slug,
                         "--num_threads",
-                        num_threads,
+                        str(num_threads),
                         "--depth",
                         str(depth),
                         "--dic",
-                        dic,
+                        str(dic),
                     ],
                 }
             ]
@@ -100,3 +101,4 @@ def Deploy(num_workers):
 
 
 print(type(SECURITYGROUP), SECURITYGROUP)
+_deploy("full", "nynets-_sal8iqlt8y", 2, False, 20, "arena-urls", "cmd-arg:6")
